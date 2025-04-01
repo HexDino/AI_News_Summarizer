@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tóm Tắt Tin Tức AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .news-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .news-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .news-item:hover {
+            transform: translateY(-2px);
+        }
+        .news-title {
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .news-title:hover {
+            color: #1557b0;
+        }
+        .news-summary {
+            color: #5f6368;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+        .news-meta {
+            color: #80868b;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            background: #e8f0fe;
+            color: #1a73e8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .category-badge:hover {
+            background: #1a73e8;
+            color: white;
+        }
+        .category-badge.active {
+            background: #1a73e8;
+            color: white;
+        }
+        .source-badge {
+            font-size: 0.9rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        .source-vnexpress { background: #9C27B0; color: white; }
+        .source-tuoitre { background: #2196F3; color: white; }
+        .source-thanhnien { background: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Tin Tức Mới Nhất</h1>
+            <p class="mb-0">Được tóm tắt tự động bởi AI từ nhiều nguồn báo</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="filters">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm tin tức...">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <select id="sourceFilter" class="form-select">
+                        <option value="">Tất cả nguồn tin</option>
+                        {% for source in sources %}
+                        <option value="{{ source }}">{{ source }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="categories mt-3">
+                <strong>Chuyên mục:</strong>
+                <button class="category-badge active" data-category="">Tất cả</button>
+                {% for category in categories %}
+                <button class="category-badge" data-category="{{ category }}">{{ category|title }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="news-container">
+            {% for news in news_list %}
+            <div class="news-item" data-category="{{ news.category }}" data-source="{{ news.source }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <a href="{{ news.link }}" target="_blank" class="news-title">
+                        {{ news.title }}
+                    </a>
+                    <span class="source-badge source-{{ news.source|lower }}">{{ news.source }}</span>
+                </div>
+                <p class="news-summary">
+                    <strong>Tóm tắt:</strong> {{ news.summary }}
+                </p>
+                {% if news.description %}
+                <p class="news-description text-muted">
+                    {{ news.description }}
+                </p>
+                {% endif %}
+                <div class="news-meta">
+                    <span class="category-badge">{{ news.category|title }}</span>
+                    <span>{{ news.timestamp if news.timestamp else 'Không có thời gian' }}</span>
+                    <span class="float-end">
+                        <a href="#" class="share-btn" data-url="{{ news.link }}">
+                            <i class="bi bi-share"></i> Chia sẻ
+                        </a>
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Lọc tin tức
+        function filterNews() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const selectedSource = document.getElementById('sourceFilter').value.toLowerCase();
+            const selectedCategory = document.querySelector('.category-badge.active').dataset.category.toLowerCase();
+            
+            document.querySelectorAll('.news-item').forEach(item => {
+                const title = item.querySelector('.news-title').textContent.toLowerCase();
+                const summary = item.querySelector('.news-summary').textContent.toLowerCase();
+                const description = item.querySelector('.news-description')?.textContent.toLowerCase() || '';
+                const itemSource = item.dataset.source.toLowerCase();
+                const itemCategory = item.dataset.category.toLowerCase();
+                
+                const matchesSearch = title.includes(searchText) || 
+                                    summary.includes(searchText) || 
+                                    description.includes(searchText);
+                const matchesSource = !selectedSource || itemSource === selectedSource;
+                const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
+                
+                if (matchesSearch && matchesSource && matchesCategory) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Xử lý tìm kiếm
+        document.getElementById('searchInput').addEventListener('input', filterNews);
+        document.getElementById('sourceFilter').addEventListener('change', filterNews);
+
+        // Xử lý chọn category
+        document.querySelectorAll('.category-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                document.querySelector('.category-badge.active').classList.remove('active');
+                this.classList.add('active');
+                filterNews();
+            });
+        });
+
+        // Chia sẻ tin tức
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.dataset.url;
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Chia sẻ tin tức',
+                        url: url
+                    });
+                } else {
+                    navigator.clipboard.writeText(url)
+                        .then(() => alert('Đã sao chép link!'))
+                        .catch(err => console.error('Lỗi khi sao chép:', err));
+                }
+            });
+        });
+    </script>
+</body>
+</html>
